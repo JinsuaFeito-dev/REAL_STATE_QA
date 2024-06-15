@@ -30,7 +30,7 @@
 ## **About the Library**
 ------------------------
 
-This repository aims to query an SQL database, containing Real State information, using natural language in order to obtain the results. This will be done using LLM to vectorize the queries and pass them to the database
+This repository aims to query an SQL database, containing Real State information, using natural language in order to obtain the results. This will be done using LLM to create the queries and pass them to the database
 
 <!-- <center>
 
@@ -45,6 +45,7 @@ This repository aims to query an SQL database, containing Real State information
 <!-- START -->
 ## **Getting Started**
 -----------------------
+In order to run the app, run the script launch_app.py
 
 ### **Installation**
 -------------------
@@ -60,13 +61,7 @@ In order to make use of the library, one should just follow the next steps:
   pip install -e .
 ```
 
-3. For using llama-cpp-python library using GPU follow the instructions at:
-
-<div style="text-align:center;">
-
-  [llama-cpp-python](https://github.com/abetlen/llama-cpp-python)
-  
-</div>
+3. For using llama-cpp-python library using GPU follow the instructions at  [llama-cpp-python](https://github.com/abetlen/llama-cpp-python)
 
 4. Rename the config template for the SQL database at config from mysql-template.yaml to mysql.yaml and configure your database.
 
@@ -127,9 +122,6 @@ Any contributions are greatly appreciated. If you have suggestions that would ma
 <!-- ACKNOWL -->
 ## **Acknowledgements**
 -----------------------
-**This very project woulnd't have been possible without:**
-
-* UDIT AI Master´s group 1 class 
 
 **Enjoy the content!** 😄
 

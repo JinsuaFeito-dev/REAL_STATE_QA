@@ -5,9 +5,6 @@ import yaml
 import sys
 from typing import Any, Dict, List, Union
 
-# Dummy user data (replace with database)
-users = {"RESQ": "RESQ"}
-
 
 def authenticate(username, password):
     """
@@ -32,7 +29,7 @@ def authenticate(username, password):
         except yaml.YAMLError as e:
             raise yaml.YAMLError(f"Error parsing YAML file: {e}")
     # Check if the username exists in the users dictionary and if the provided password matches
-    if username in login["users"] and login["passwords"][users] == password:
+    if username in login["users"] and login["passwords"][username] == password:
         return True  # Authentication successful
     return False  # Authentication failed
 
