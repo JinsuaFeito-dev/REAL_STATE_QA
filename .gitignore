@@ -8,7 +8,7 @@ config/mysql.yaml
 logs/
 
 # Ignore model files and directories
-models/model/
+models/model/*
 
 # Ignore Visual Studio Code settings
 .vscode/

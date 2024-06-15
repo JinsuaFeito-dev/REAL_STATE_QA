@@ -45,7 +45,9 @@ This repository aims to query an SQL database, containing Real State information
 <!-- START -->
 ## **Getting Started**
 -----------------------
-In order to run the app, run the script launch_app.py
+
+In order to be able to run the application, you will need to download llama model and save it into models/model. For example, for a 8gb VRAM gpu, you can download llama3 model from [here](https://huggingface.co/bartowski/Code-Llama-3-8B-GGUF). After you have download the model, configured the config files at config, the model config file at models/cfg and the model prompt template at templates/ you can launch the app using the script launch_app.py
+
 
 ### **Installation**
 -------------------
