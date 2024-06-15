@@ -1,0 +1,15 @@
+# Ignore virtual environment directory
+.venv/
+
+# Ignore MySQL database configuration file
+config/mysql.yaml
+
+# Ignore logs directory
+logs/
+
+# Ignore model files and directories
+models/model/
+
+#Vscode 
+
+.vscode
