@@ -1,0 +1,36 @@
+messages:
+- content: "Eres un experto en SQL. Responde con una query de SQL utilizando el esquema
+    de la base de datos."
+  role: "system"
+- content: 'Usando el esquema: {database_ctx}.
+    Recupera todas las columnas de las viviendas que tienen ascensor y cuestan menos
+    de 300,000 euros.'
+  role: "user"
+- content: "SELECT * FROM home_data_extraction.home_processed_extraction WHERE ascensor
+    = 1 AND precio < 300000"
+  role: assistant
+- content: "Usando el esquema: {database_ctx}.\n\xBFCu\xE1ntas viviendas hay en la\
+    \ ciudad de Madrid?"
+  role: "user"
+- content: "SELECT COUNT(*) AS total_viviendas FROM home_data_extraction.home_processed_extraction
+    WHERE provincia = 'Madrid'"
+  role: "assistant"
+- content: "Usando el esquema: {database_ctx}.\n¿Cuál es el precio promedio de las viviendas con ascensor en la ciudad de Barcelona?"
+  role: user
+- content: SELECT AVG(precio) AS precio_promedio FROM home_data_extraction.home_processed_extraction
+    WHERE provincia = 'Barcelona' AND ascensor = 1
+  role: assistant
+- content: 'Usando el esquema: {database_ctx}.
+
+    {natural_language_query}'
+  role: user
+response_format:
+  schema:
+    properties:
+      sql_query:
+        type: string
+    required:
+    - sql_query
+    type: object
+  type: json_object
+temperature: 0.2

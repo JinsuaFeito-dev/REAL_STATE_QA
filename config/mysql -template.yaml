@@ -1,0 +1,6 @@
+host : 'REPLACE WITH YOUR HOSTNAME'
+port : '3306'
+ddbb_schema : "home_data_extraction"
+tables : ['home_data_extraction.home_processed_extraction',"home_data_extraction.barrio_provincia"]
+user : ''
+password : ''

@@ -1,0 +1,8 @@
+llama_config:
+  model_path: "models/model/Code-Llama-3-8B-Q6_K.gguf"
+  n_gpu_layers: 27
+  n_ctx: 3000
+  n_batch: 3000
+  verbose:  False
+  chat_format: "chatml"
+template_path: templates/chatML.yaml

@@ -10,6 +10,16 @@ logs/
 # Ignore model files and directories
 models/model/
 
-#Vscode 
+# Ignore Visual Studio Code settings
+.vscode/
 
-.vscode
+# Ignore build and distribution directories
+build/
+dist/
+
+# Ignore Python bytecode cache
+__pycache__/
+
+# Ignore Python egg metadata
+*.egg-info/
+*.egg

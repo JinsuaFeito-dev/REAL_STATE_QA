@@ -1,0 +1,43 @@
+[build-system]
+requires = [
+    "setuptools>=59.6.0",
+#    "setuptools_scm>=8.0.4", 
+    "wheel>=0.42.0"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "resq"
+version = "0.1.0"
+#dynamic = ["version"]
+description = "This repository aims to query an SQL database, containing Real State information, using natural language in order to obtain the results. This will be done using LLM to vectorize the queries and pass them to the database"
+authors = [
+    { name = "Jorge Insua" }
+]
+readme = { file = "README.md" , content-type = "text/markdown" }
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+keywords = [
+    "machine-learning",
+    "deep-learning",
+    "Real State",
+    "LLM",
+
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+dependencies = [
+    "mysql-connector-python  ",
+    "gradio",
+    "pymysql",
+    "loguru",
+    llama-cpp-python
+]
+
+[tool.setuptools]
+packages = ["resq"]
