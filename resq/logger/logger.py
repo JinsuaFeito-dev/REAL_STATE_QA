@@ -5,36 +5,37 @@ from typing import Any
 from pathlib import Path
 import warnings
 import loguru
+import shutil
 
 showwarning_ = warnings.showwarning
 
-#==============================================================================
+# ==============================================================================
 
-def get_logger(
-) -> Any:
+
+def get_logger() -> Any:
 
     return loguru.logger
 
-#==============================================================================
 
-def showwarning(
-    message, 
-    *args, 
-    **kwargs
-) -> None:
+# ==============================================================================
+
+
+def showwarning(message, *args, **kwargs) -> None:
 
     get_logger().warning(message)
-    #showwarning_(message, *args, **kwargs)
+    # showwarning_(message, *args, **kwargs)
 
-#==============================================================================
+
+# ==============================================================================
+
 
 def init_logger(
     console_output: bool = True,
     logfile: bool = False,
-    logfolder_path: os.PathLike = Path(".", "logs"),
+    logfolder_path: Path = Path(".", "logs"),
     logfile_name: str = "log",
     level: str = "INFO",
-    capture_warnings: bool = True
+    capture_warnings: bool = True,
 ) -> Any:
     """This function configures and returns a logger based in loguru.
 
@@ -57,12 +58,14 @@ def init_logger(
         Returns the logger class
     """
 
-
     logger = loguru.logger
     logger.remove(0)
 
-
     handlers = []
+    # move previous logs to a history folder
+    for legacy_logs in logfolder_path.glob("*.log"):
+        os.makedirs(legacy_logs.parent / "log_history", exist_ok=True)
+        shutil.move(legacy_logs, legacy_logs.parent / "log_history" / legacy_logs.name)
 
     if logfile:
         handlers.append(
@@ -84,6 +87,7 @@ def init_logger(
                 backtrace=True,
                 diagnose=True,
                 catch=True,
+                level=level,
             )
         )
 

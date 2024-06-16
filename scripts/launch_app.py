@@ -1,4 +1,6 @@
 import argparse
+from pathlib import Path
+
 from resq.logger.logger import init_logger
 from resq.app.app import app
 
@@ -25,13 +27,17 @@ def app_manager(
         default="./logs/",
         help="Paths to logs",
     )
+    parser.add_argument(
+        "-s", "--share",
+        action="store_true"
+    )
     args = parser.parse_args()
 
     # Initialize logger
     init_logger(
         console_output=True,
         logfile=True,
-        logfolder_path=args.logs_path,
+        logfolder_path=Path(args.logs_path),
         logfile_name="app_log",
     )
 
@@ -39,7 +45,8 @@ def app_manager(
     app(
         args.ip,
         args.port,
-        args.logs_path
+        args.share,
+        Path(args.logs_path)
     )
     
 if __name__ == "__main__":

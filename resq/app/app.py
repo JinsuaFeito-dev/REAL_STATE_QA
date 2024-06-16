@@ -1,9 +1,6 @@
 from pathlib import Path
 import gradio as gr
-
 from resq.app.functional import *
-from resq.llm.model import llm_model
-from resq.ddbb.database import MySQL_database
 
 
 def app(
@@ -13,16 +10,6 @@ def app(
     logs_path="./logs",
 ):
     """Defines the frontend and backend of the Gradio application"""
-
-    model_config = get_model_config(
-        Path(__file__).parent.parent.parent / "models/cfg/config.yaml"
-    )
-    ddbb_config = get_ddbb_config(
-        Path(__file__).parent.parent.parent / "config/mysql.yaml"
-    )
-
-    llm = llm_model(**model_config)
-    database = MySQL_database(**ddbb_config)
 
     ##########################################################
     ######################  Frontend #########################
@@ -53,12 +40,10 @@ def app(
                 """
         )
         # ==================================================================
-        # Create the gradio objects and delete the original items. gr.State uses deepcopy
+        # Create the gradio objects
 
-        llm_gradio = gr.State(llm)
-        del llm
-        database_gradio = gr.State(database)
-        del database
+        llm_gradio = gr.State(None)
+        database_gradio = gr.State(None)
 
         logs_path = gr.State(logs_path)
         query = gr.State(None)
@@ -107,7 +92,7 @@ def app(
         submit_button.click(
             fn=process_chat,
             inputs=[llm_gradio, database_gradio, query],
-            outputs=[output_dataframe, output_text],
+            outputs=[output_dataframe, output_text, llm_gradio, database_gradio],
             queue=False,
         )
 

@@ -1,8 +1,8 @@
 from sqlalchemy import create_engine, MetaData, text
 from sqlalchemy.orm import sessionmaker
-import logging
 from pydantic import BaseModel, ConfigDict
 from loguru import logger
+
 
 class MySQL_database(BaseModel):
     """
@@ -27,8 +27,8 @@ class MySQL_database(BaseModel):
         Username for database authentication.
     password : str
         Password for database authentication.
-    database_ctx : str, optional
-        Context string for the database, by default "".
+    database_ctx : dict, optional
+        Context dict for the database, by default "".
 
     Methods
     -------
@@ -59,18 +59,7 @@ class MySQL_database(BaseModel):
     user: str
     password: str
 
-    database_ctx: str = ""
-
-    def __init__(self, **data):
-        """
-        Initializes the MySQL database model with the provided configuration.
-
-        Parameters
-        ----------
-        **data : dict
-            Configuration data for the database.
-        """
-        super().__init__(**data)
+    database_ctx: dict = {}
 
     def __str__(self):
         """
@@ -104,10 +93,15 @@ class MySQL_database(BaseModel):
         If the session or metadata is not properly initialized, an error is logged
         and None is returned.
         """
-        if self.Session is None or self.metadata is None:
-            logging.error("Database has not connected properly")
-            return
-        return self.execute_sql_query(sql_query)
+        try:
+            if self.Session is None or self.metadata is None:
+                raise Exception("Database has not connected properly")
+
+            return self.execute_sql_query(sql_query)
+
+        except Exception as e:
+            logger.error(f"Error executing SQL query: {e}")
+            return [], []
 
     def create_tables_context(self) -> str:
         """
@@ -118,33 +112,40 @@ class MySQL_database(BaseModel):
         str
             Context string for the tables in the database metadata.
         """
-        if self.tables is None:
-            self.tables = self.metadata.tables.keys()
+        try:
+            if self.tables is None:
+                self.tables = self.metadata.tables.keys()
 
-        tables_lst = []
+            tables_lst = []
 
-        for table_name in self.metadata.tables.keys():
-            if table_name in self.tables:
-                table = self.metadata.tables[table_name]
-                columns = [
-                    f"{column.name} ({str(column.type)})"
-                    for column in table.ddbb_schema
-                ]
-                tables_lst.append({"nombre": table_name, "columnas": columns})
+            for table_name in self.metadata.tables.keys():
+                if table_name in self.tables:
+                    table = self.metadata.tables[table_name]
+                    columns = [
+                        f"{column.name} ({str(column.type)})"
+                        for column in table.columns
+                    ]
+                    tables_lst.append({"nombre": table_name, "columnas": columns})
 
-        self.database_ctx = ""
+            tables_ctx = ""
 
-        for index, table in enumerate(tables_lst):
-            self.database_ctx += f"Tabla {index}:\n"
-            for key, value in table.items():
-                self.database_ctx += f"{key}:"
-                if isinstance(value, list):
-                    for item in value:
-                        self.database_ctx += f"{item}\n"
-                elif isinstance(value, str):
-                    self.database_ctx += f"{value}\n"
+            for index, table in enumerate(tables_lst):
+                tables_ctx += f"Tabla {index}:\n"
+                for key, value in table.items():
+                    tables_ctx += f"{key}:"
+                    if isinstance(value, list):
+                        for item in value:
+                            tables_ctx += f"{item}\n"
+                    elif isinstance(value, str):
+                        tables_ctx += f"{value}\n"
+            if "user" in self.database_ctx:
+                self.database_ctx["user"] += tables_ctx
+            else:
+                self.database_ctx["user"] = tables_ctx
+            logger.info("Tables context generated successfully")
 
-        return self.database_ctx
+        except Exception as e:
+            logger.error(f"Error generating tables context: {e}")
 
     def connect_to_database(self):
         """
@@ -160,7 +161,7 @@ class MySQL_database(BaseModel):
             engine = create_engine(
                 f"mysql+pymysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.ddbb_schema}"
             )
-            logger.info(f"Connected correctly to:\n {self}")
+            logger.info(f"Connected correctly to: {self}")
 
             # Reflect metadata from the database
             self.metadata = MetaData()
@@ -170,7 +171,7 @@ class MySQL_database(BaseModel):
             self.Session = sessionmaker(bind=engine)
 
         except Exception as e:
-            logging.error(f"Error connecting to database: {e}")
+            logger.error(f"Error connecting to database: {e}")
             raise  # Re-raise the exception for higher-level handling
 
     def execute_sql_query(self, sql_query) -> tuple:
@@ -179,7 +180,6 @@ class MySQL_database(BaseModel):
 
         Parameters
         ----------
-
         sql_query : str
             SQL query to execute.
 
@@ -197,6 +197,68 @@ class MySQL_database(BaseModel):
         try:
             result = self.Session().execute(text(sql_query))
             return result.fetchall(), result.keys()
+
         except Exception as e:
-            logging.error(e)
+            logger.error(f"Error executing SQL query: {e}")
             return [], []
+
+    def generate_province_district_hood_relation(self):
+        """
+        Generates a relation between provinces, districts, and neighborhood names.
+
+        Queries the database to fetch unique province, district, and neighborhood names
+        and organizes them into a nested structure to create context prompts.
+
+        Returns:
+            str: The last generated context prompt.
+        """
+        try:
+            # Query to fetch distinct provinces, districts, and neighborhood names, ordered.
+            query = """SELECT DISTINCT PROVINCIA, NOMDIS, NOMBRE \
+            FROM home_data_extraction.barrio_provincia \
+            ORDER BY PROVINCIA, NOMDIS, NOMBRE;"""
+
+            # Execute the query and fetch results
+            result = self.Session().execute(text(query))
+
+            # Populate the dictionary with query results
+            results = result.fetchall()
+            provincias = set(item[0] for item in results)
+            distritos = set(item[1] for item in results)
+
+            # Variable to store the last generated context prompt
+            neighborhood_ctx = ""
+
+            # Add province information
+            neighborhood_ctx += f"Los valores posibles de la columna provincia son : {', '.join(provincias)}\n"
+            # Add district information
+            neighborhood_ctx += f" Los valores posibles de la columna distrito son : {', '.join(distritos)}\n"
+
+            if "user" in self.database_ctx:
+                self.database_ctx["user"] += neighborhood_ctx
+            else:
+                self.database_ctx["user"] = neighborhood_ctx
+
+            logger.info(
+                "Province, district, and neighborhood relation generated successfully"
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Error generating province, district, and neighborhood relation: {e}"
+            )
+
+    def get_database_ctx(self):
+        """
+        Retrieves and stores the database context.
+
+        This method combines multiple context generation functions to compile
+        a comprehensive database context.
+        """
+        try:
+            self.create_tables_context()
+            self.generate_province_district_hood_relation()
+            logger.info("Database context retrieved successfully")
+
+        except Exception as e:
+            logger.error(f"Error retrieving database context: {e}")

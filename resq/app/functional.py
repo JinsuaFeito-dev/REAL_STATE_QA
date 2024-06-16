@@ -5,6 +5,9 @@ import yaml
 import sys
 from typing import Any, Dict, List, Union
 
+from resq.llm.model import llm_model
+from resq.ddbb.database import MySQL_database
+
 
 def authenticate(username, password):
     """
@@ -27,11 +30,15 @@ def authenticate(username, password):
         try:
             login = yaml.safe_load(f)
         except yaml.YAMLError as e:
-            raise yaml.YAMLError(f"Error parsing YAML file: {e}")
-    # Check if the username exists in the users dictionary and if the provided password matches
-    if username in login["users"] and login["passwords"][username] == password:
-        return True  # Authentication successful
-    return False  # Authentication failed
+            logger.error(f"Error parsing YAML file: {e}")
+            raise
+
+    if username in login["users"] and login["passwords"].get(username) == password:
+        logger.info(f"User '{username}' authenticated successfully")
+        return True
+    else:
+        logger.warning(f"Failed authentication attempt for user '{username}'")
+        return False
 
 
 def get_model_config(config_path: Path) -> Dict[str, Any]:
@@ -62,7 +69,8 @@ def get_model_config(config_path: Path) -> Dict[str, Any]:
         try:
             model_cfg = yaml.safe_load(f)
         except yaml.YAMLError as e:
-            raise yaml.YAMLError(f"Error parsing YAML file: {e}")
+            logger.error(f"Error parsing YAML file: {e}")
+            raise
 
     logger.info(f"Model configuration loaded successfully from {config_path}")
     return model_cfg
@@ -96,7 +104,8 @@ def get_ddbb_config(config_path: Path) -> Dict[str, Any]:
         try:
             ddbb_cfg = yaml.safe_load(f)
         except yaml.YAMLError as e:
-            raise yaml.YAMLError(f"Error parsing YAML file: {e}")
+            logger.error(f"Error parsing YAML file: {e}")
+            raise
 
     logger.info(f"Database configuration loaded successfully from {config_path}")
     return ddbb_cfg
@@ -124,12 +133,17 @@ def format_response(
     -----
     Assumes each tuple in result corresponds to a row in the DataFrame.
     """
-    # Create a DataFrame from the result with specified columns
-    df = pd.DataFrame(data=result, columns=columns)
-    return df
+    try:
+        # Create a DataFrame from the result with specified columns
+        df = pd.DataFrame(data=result, columns=columns)
+        logger.info("Formatted result set into a DataFrame successfully")
+        return df
+    except Exception as e:
+        logger.error(f"Error formatting result set: {e}")
+        raise
 
 
-def process_chat(llm_model, database, user_input):
+def process_chat(model, database, user_input):
     """
     Processes user input through a language model and database, then formats and returns the response.
 
@@ -151,41 +165,45 @@ def process_chat(llm_model, database, user_input):
         - info: str
             A string combining the generated query and the shape of the response DataFrame.
     """
-    # ==================================================================
-    # Initialize weights and connect to database
-    if llm_model.llm == None:
-        llm_model._initialize_model()
-    if database.Session == None:
-        database.connect_to_database()
-        database.create_tables_context()
+    try:
+        # Initialize weights and connect to database if necessary
+        if database is None:
+            ddbb_config = get_ddbb_config(
+                Path(__file__).parent.parent.parent / "config/mysql.yaml"
+            )
+            database = MySQL_database(**ddbb_config)
+            database.connect_to_database()
+            database.get_database_ctx()
+            logger.info("Connected to database and obtained database context")
 
-    # Generate the query using the language model
-    query = llm_model.infer(user_input)
+        if model is None:
 
-    # Execute the query on the database and retrieve the results
-    result, columns = database.query(query)
+            model_config = get_model_config(
+                Path(__file__).parent.parent.parent / "models/cfg/config.yaml"
+            )
+            model = llm_model(**model_config)
+            model._initialize_model()
+            model.database_context = database.database_ctx
+            logger.info("Initialized language model")
 
-    # TODO: Implement a second query attempt if the first one fails
+        # Generate the query using the language model
+        query = model.infer(user_input)
 
-    # Format the response into a DataFrame
-    response = format_response(result, columns)
+        # Execute the query on the database and retrieve the results
+        result, columns = database.query(query)
 
-    # Return the response DataFrame and additional info string
-    return response, f"{query}"
+        # Format the response into a DataFrame
+        response = format_response(result, columns)
 
+        logger.info(f"Processed user input with query: {query}")
+        return response, f"{query}", model, database
 
-def extract_log_data(
-    logs_path,
-):
-
-    log = read_logs(logs_path)
-
-    return log
+    except Exception as e:
+        logger.error(f"Error processing user input: {e}")
+        raise
 
 
-def read_logs(
-    logs_path,
-):
+def extract_log_data(logs_path):
     """
     Extracts log data from the specified log file.
 
@@ -195,15 +213,39 @@ def read_logs(
     Returns:
     - str: Contents of the log file as a string.
     """
-    # Ensure any buffered output is flushed
-    sys.stdout.flush()
+    try:
+        log = read_logs(logs_path)
+        logger.debug(f"Extracted log data from '{logs_path}' successfully")
+        return log
+    except Exception as e:
+        logger.error(f"Error extracting log data: {e}")
+        raise
 
-    # Convert logs_path to a Path object for better manipulation
-    logs_path = Path(logs_path)
 
-    # Find the first .log file recursively within the logs_path directory
-    log_file = next(logs_path.glob("**/*.log"))
+def read_logs(logs_path):
+    """
+    Reads log data from the specified log file.
 
-    # Open and read the contents of the log file
-    with open(log_file, "r") as f:
-        return f.read()
+    Args:
+    - logs_path (str): Path to the directory containing log files.
+
+    Returns:
+    - str: Contents of the log file as a string.
+    """
+    try:
+        # Ensure any buffered output is flushed
+        sys.stdout.flush()
+
+        # Convert logs_path to a Path object for better manipulation
+        logs_path = Path(logs_path)
+
+        # Find the first .log file recursively within the logs_path directory
+        log_file = next(logs_path.glob("**/*.log"))
+
+        # Open and read the contents of the log file
+        with open(log_file, "r") as f:
+            return f.read()
+
+    except Exception as e:
+        logger.error(f"Error reading logs from '{logs_path}': {e}")
+        raise
