@@ -34,8 +34,12 @@ classifiers = [
 dependencies = [
     "mysql-connector-python  ",
     "gradio",
+    "pydantic",
+    "PyYAML",
+    "sqlalchemy",
     "pymysql",
     "loguru",
+    "pandas",
     "llama-cpp-python"
 ]
 

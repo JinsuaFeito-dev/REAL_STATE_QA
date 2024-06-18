@@ -1,8 +1,8 @@
-from sqlalchemy import create_engine, MetaData, text
+from sqlalchemy import create_engine, MetaData, text, Engine
 from sqlalchemy.orm import sessionmaker
 from pydantic import BaseModel, ConfigDict
 from loguru import logger
-
+from pandas import read_sql_query
 
 class MySQL_database(BaseModel):
     """
@@ -50,6 +50,7 @@ class MySQL_database(BaseModel):
 
     Session: sessionmaker = None
     metadata: MetaData = None
+    engine: Engine = None
 
     host: str
     port: str
@@ -103,6 +104,37 @@ class MySQL_database(BaseModel):
             logger.error(f"Error executing SQL query: {e}")
             return [], []
 
+    def pandas_query(self, sql_query: str) -> tuple:
+        """
+        Executes a SQL query and returns the results.
+
+        Parameters
+        ----------
+        sql_query : str
+            SQL query to execute.
+
+        Returns
+        -------
+        tuple
+            A tuple containing two elements:
+            - A list of tuples representing the fetched rows from the query result.
+            - A list of column names (keys) of the result set.
+
+        Notes
+        -----
+        If the session or metadata is not properly initialized, an error is logged
+        and None is returned.
+        """
+        try:
+            if self.engine is None :
+                raise Exception("Database has not connected properly")
+
+            return read_sql_query(sql_query,self.engine)
+
+        except Exception as e:
+            logger.error(f"Error executing SQL query: {e}")
+            return [], []
+        
     def create_tables_context(self) -> str:
         """
         Generates a context string for tables in the metadata.
@@ -158,17 +190,17 @@ class MySQL_database(BaseModel):
         """
         try:
             # Create engine and bind to the database
-            engine = create_engine(
+            self.engine = create_engine(
                 f"mysql+pymysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.ddbb_schema}"
             )
             logger.info(f"Connected correctly to: {self}")
 
             # Reflect metadata from the database
             self.metadata = MetaData()
-            self.metadata.reflect(bind=engine)
+            self.metadata.reflect(bind=self.engine)
 
             # Create sessionmaker bound to the engine
-            self.Session = sessionmaker(bind=engine)
+            self.Session = sessionmaker(bind=self.engine)
 
         except Exception as e:
             logger.error(f"Error connecting to database: {e}")

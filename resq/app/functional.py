@@ -110,39 +110,6 @@ def get_ddbb_config(config_path: Path) -> Dict[str, Any]:
     logger.info(f"Database configuration loaded successfully from {config_path}")
     return ddbb_cfg
 
-
-def format_response(
-    result: List[tuple], columns: Union[List[str], None] = None
-) -> pd.DataFrame:
-    """
-    Format a result set into a pandas DataFrame.
-
-    Parameters
-    ----------
-    result : List[tuple]
-        List of tuples representing the rows of the result set.
-    columns : Union[List[str], None], optional
-        List of column names. If None, columns will be inferred from the result data.
-
-    Returns
-    -------
-    pd.DataFrame
-        Pandas DataFrame containing the formatted data.
-
-    Notes
-    -----
-    Assumes each tuple in result corresponds to a row in the DataFrame.
-    """
-    try:
-        # Create a DataFrame from the result with specified columns
-        df = pd.DataFrame(data=result, columns=columns)
-        logger.info("Formatted result set into a DataFrame successfully")
-        return df
-    except Exception as e:
-        logger.error(f"Error formatting result set: {e}")
-        raise
-
-
 def process_chat(model, database, user_input):
     """
     Processes user input through a language model and database, then formats and returns the response.
@@ -190,10 +157,7 @@ def process_chat(model, database, user_input):
         query = model.infer(user_input)
 
         # Execute the query on the database and retrieve the results
-        result, columns = database.query(query)
-
-        # Format the response into a DataFrame
-        response = format_response(result, columns)
+        response = database.pandas_query(query)
 
         logger.info(f"Processed user input with query: {query}")
         return response, f"{query}", model, database
